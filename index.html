@@ -1,0 +1,1168 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gateway เครื่องนับเม็ดยา · BMS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #eef3f8;
+    --surface: #ffffff;
+    --surface2: #f1f5f9;
+    --border: #c3cfdd;
+    --line: #e2e8f0;
+    --text: #1e293b;
+    --muted: #5b6b7f;
+    --primary: #0e7490;
+    --primary-soft: #a5d8e4;
+    --ok: #15803d;
+    --ok-bg: #e7f6ec;
+    --err: #b91c1c;
+    --err-bg: #fdeaea;
+    --warn: #8a5a06;
+    --warn-bg: #fdf3d7;
+    --info: #5b21b6;
+    --info-bg: #ede9fe;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
+  body {
+    font-family: 'Sarabun', system-ui, sans-serif;
+    background: var(--bg); color: var(--text);
+    min-height: 100vh; font-size: 16px; line-height: 1.55;
+  }
+  .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 0.9em; }
+  .muted { color: var(--muted); }
+
+  /* ---- Header ---- */
+  .header {
+    background: linear-gradient(120deg, #0e7490 0%, #155e9e 60%, #1d4ed8 100%);
+    color: #fff; padding: 8px 20px; min-height: 62px;
+    display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    position: sticky; top: 0; z-index: 20;
+    box-shadow: 0 2px 6px rgba(13,44,74,0.25);
+  }
+  .logo {
+    width: 38px; height: 38px; border-radius: 10px; flex-shrink: 0;
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+    display: grid; place-items: center;
+  }
+  .header h1 { font-size: 18px; font-weight: 700; line-height: 1.3; }
+  .header-sub { font-size: 13px; color: rgba(255,255,255,0.8); }
+  .ver {
+    font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 600;
+    padding: 2px 8px; border-radius: 10px; white-space: nowrap;
+    background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35);
+  }
+  .spacer { flex: 1; }
+  .session-form { display: flex; gap: 8px; align-items: center; }
+  .session-form input { width: 310px; max-width: 55vw; }
+  .session-pill {
+    display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 20px;
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.35);
+    font-size: 14px; max-width: 380px; overflow: hidden; white-space: nowrap;
+  }
+  .session-pill span:last-child { overflow: hidden; text-overflow: ellipsis; }
+  .session-pill.ok { background: #d9f2e2; border-color: #9ddcb5; color: #116232; }
+  .session-pill.err { background: #fdd9d9; border-color: #f3a6a6; color: #a11a1a; }
+  .session-pill.warn { background: #fceec7; border-color: #ecd28a; color: #7a5205; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+  .header .btn.secondary { background: rgba(255,255,255,0.14); border-color: rgba(255,255,255,0.45); color: #fff; }
+  .header .btn.secondary:hover { background: rgba(255,255,255,0.26); }
+
+  /* ---- Controls ---- */
+  input, select {
+    background: #fff; border: 1px solid #9fb0c4; color: var(--text);
+    padding: 7px 10px; border-radius: 7px; min-height: 40px;
+    font-family: inherit; font-size: 15px;
+  }
+  input:focus-visible, select:focus-visible, button:focus-visible { outline: 3px solid #0b57d0; outline-offset: 2px; }
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    min-height: 40px; padding: 7px 16px; border-radius: 7px;
+    border: 1px solid var(--primary); background: var(--primary); color: #fff;
+    font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; filter: none; }
+  .btn.secondary { background: #fff; border-color: var(--border); color: var(--text); }
+  .btn.secondary:hover { background: var(--surface2); filter: none; }
+  .btn.small { min-height: 34px; padding: 4px 12px; font-size: 14px; }
+
+  main { padding: 16px 20px 40px; max-width: 1500px; margin: 0 auto; }
+
+  .banner { border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; border: 1px solid; font-size: 15px; }
+  .banner.warn { background: var(--warn-bg); border-color: #ecd28a; color: var(--warn); }
+  .banner.err { background: var(--err-bg); border-color: #f3a6a6; color: var(--err); }
+
+  .toolbar {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 12px 16px; margin-bottom: 14px; box-shadow: 0 4px 14px rgba(15,42,68,0.08);
+    display: flex; gap: 10px 18px; align-items: flex-end; flex-wrap: wrap;
+  }
+  .field { display: flex; flex-direction: column; gap: 2px; }
+  .field > label { font-size: 13px; font-weight: 700; color: var(--muted); }
+  .check { display: flex; gap: 6px; align-items: center; font-size: 15px; min-height: 40px; cursor: pointer; }
+  .check input { min-height: 0; width: 18px; height: 18px; }
+  .loaded-at { font-size: 13px; color: var(--muted); margin-left: auto; align-self: center; text-align: right; }
+
+  /* ---- KPI ---- */
+  .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; margin-bottom: 14px; }
+  .kpi {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px;
+    text-align: left; font: inherit; color: inherit; cursor: pointer; border-left: 5px solid var(--border);
+    box-shadow: 0 2px 8px rgba(15,42,68,0.06);
+  }
+  .kpi:hover { border-color: var(--primary); }
+  .kpi[aria-pressed="true"] { outline: 3px solid var(--primary); outline-offset: -1px; }
+  .kpi .k { font-size: 13.5px; color: var(--muted); font-weight: 700; }
+  .kpi .v small { font-size: 14px; font-weight: 600; color: var(--muted); }
+  .kpi .v { font-size: 28px; font-weight: 700; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .kpi .s { font-size: 13px; color: var(--muted); }
+  .kpi.err { border-left-color: var(--err); } .kpi.err.hot .v { color: var(--err); }
+  .kpi.warn { border-left-color: #d49b1b; } .kpi.warn.hot .v { color: var(--warn); }
+  .kpi.ok { border-left-color: var(--ok); } .kpi.ok .v { color: var(--ok); }
+  .kpi.info { border-left-color: #8b5cf6; }
+  .kpi.plain { border-left-color: var(--primary); cursor: default; }
+
+  /* ---- Panels ---- */
+  .panel {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    margin-bottom: 14px; overflow: hidden; box-shadow: 0 4px 14px rgba(15,42,68,0.08);
+  }
+  .panel-head {
+    display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap;
+    padding: 10px 16px; border-bottom: 1px solid var(--line); background: #f8fafc;
+  }
+  .panel-head h2 { font-size: 16.5px; font-weight: 700; }
+  .panel-body { padding: 12px 16px; }
+
+  /* ---- Hourly chart ---- */
+  .chart { display: grid; grid-template-columns: repeat(var(--n), minmax(26px, 1fr)); gap: 4px; align-items: end; height: 170px; padding-top: 6px; }
+  .hcol { display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+  .bars { display: flex; gap: 2px; align-items: flex-end; height: 130px; width: 100%; justify-content: center; }
+  .bar { width: 42%; border-radius: 3px 3px 0 0; min-height: 1px; }
+  .bar.rx { background: var(--primary-soft); }
+  .bar.mc { background: var(--primary); }
+  .hlbl { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .hlag { font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .lag-ok { color: var(--ok); } .lag-warn { color: var(--warn); } .lag-err { color: var(--err); }
+  .legend { display: flex; gap: 14px; font-size: 13px; color: var(--muted); flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 12px; height: 12px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; }
+
+  /* ---- Table ---- */
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip {
+    border: 1px solid var(--border); background: #fff; color: var(--text);
+    border-radius: 16px; padding: 2px 11px; font: inherit; font-size: 14px; cursor: pointer; min-height: 32px;
+  }
+  .chip b { font-variant-numeric: tabular-nums; }
+  .chip[aria-pressed="true"] { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .filters { display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); }
+  .filters input[type="search"] { width: 280px; max-width: 100%; }
+  .filters select { max-width: 320px; }
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+  th {
+    text-align: left; font-size: 12.5px; font-weight: 700; color: var(--muted);
+    background: var(--surface2); padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap;
+    position: sticky; top: 0;
+  }
+  td { padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  tbody tr:hover { background: #f7fbfd; }
+  .sub { font-size: 12.5px; color: var(--muted); }
+  .nowrap { white-space: nowrap; }
+  .linkish { background: none; border: 0; padding: 0; font: inherit; color: var(--primary); cursor: pointer; text-decoration: underline dotted; }
+  .badge {
+    display: inline-flex; align-items: center; padding: 1px 8px; border-radius: 10px; font-size: 12.5px; font-weight: 700;
+    background: var(--surface2); color: var(--muted); border: 1px solid var(--line); white-space: nowrap;
+  }
+  .badge.err { background: var(--err-bg); color: var(--err); border-color: #f3a6a6; }
+  .badge.warn { background: var(--warn-bg); color: var(--warn); border-color: #ecd28a; }
+  .badge.ok { background: var(--ok-bg); color: var(--ok); border-color: #9ddcb5; }
+  .badge.info { background: var(--info-bg); color: var(--info); border-color: #d8ccfb; }
+  .diff { color: var(--err); font-weight: 700; }
+  .empty { padding: 32px 16px; text-align: center; color: var(--muted); }
+  .empty strong { display: block; color: var(--text); font-size: 17px; margin-bottom: 4px; }
+  tr.grp { cursor: pointer; }
+  tr.grp:hover { background: #eef7fa; }
+  tr.grp.open { background: #e6f3f7; }
+  tr.grp.open td { border-bottom-color: transparent; }
+  .tgl {
+    width: 26px; height: 26px; margin-right: 6px; border-radius: 6px; border: 1px solid var(--border);
+    background: #fff; color: var(--primary); font-size: 14px; line-height: 1; cursor: pointer; vertical-align: middle;
+  }
+  tr.detail > td { background: #f4f9fb; padding: 4px 12px 12px 44px; border-bottom: 2px solid var(--border); }
+  tr.detail:hover { background: transparent; }
+  table.inner { background: #fff; border: 1px solid var(--line); border-radius: 8px; font-size: 14px; }
+  table.inner th { position: static; background: #f8fafc; }
+  .groups td .badge { margin: 1px 0; }
+  .more { padding: 10px 16px; display: flex; gap: 10px; align-items: center; border-top: 1px solid var(--line); }
+  .progress { font-size: 14px; color: var(--muted); }
+
+  .toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1e293b; color: #fff; padding: 10px 18px; border-radius: 8px; font-size: 15px;
+    opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: 90vw;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.err { background: var(--err); } .toast.warn { background: #7a5205; }
+
+  @media (max-width: 760px) {
+    .header { padding: 8px 12px; }
+    main { padding: 12px 10px 30px; }
+    .session-form input { width: 100%; max-width: none; }
+    .session-form { width: 100%; }
+    .loaded-at { margin-left: 0; text-align: left; }
+  }
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="logo" aria-hidden="true">
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <rect x="3" y="8" width="18" height="8" rx="4"/><path d="M12 8v8"/>
+    </svg>
+  </div>
+  <div>
+    <h1>ตรวจสอบข้อมูลเข้า Gateway เครื่องนับเม็ดยา</h1>
+    <div class="header-sub">opitemrece ↔ opd_presc_machine (เทียบด้วย hos_guid)</div>
+  </div>
+  <span class="ver" id="ver"></span>
+  <div class="spacer"></div>
+  <form class="session-form" id="sessionForm">
+    <input id="sessionId" type="text" placeholder="BMS Session ID" autocomplete="off" spellcheck="false" aria-label="BMS Session ID">
+    <button class="btn" type="submit" id="connectBtn">เชื่อมต่อ</button>
+  </form>
+  <div class="session-pill" id="sessionPill" role="status">
+    <span class="dot" aria-hidden="true"></span><span id="sessionPillText">ยังไม่เชื่อมต่อ</span>
+  </div>
+  <button class="btn secondary small" type="button" id="disconnectBtn" hidden>ตัดการเชื่อมต่อ</button>
+</header>
+
+<main>
+  <div class="banner warn" id="fileWarn" hidden>
+    เปิดไฟล์นี้ตรงจากดิสก์ (file://) จะดึงข้อมูลจาก HOSxP ไม่ได้ — ให้ดับเบิลคลิก <b>start.bat</b>
+    แล้วใช้ลิงก์ MAIN URL (<span class="mono">http://IP-เครื่อง:8797/</span>) ที่หน้าต่าง start.bat แสดง
+  </div>
+  <div class="banner err" id="notice" role="alert" hidden></div>
+
+  <div class="toolbar">
+    <div class="field">
+      <label for="day">วันที่</label>
+      <input id="day" type="date">
+    </div>
+    <label class="check"><input type="checkbox" id="opdOnly" checked> เฉพาะ OPD (an ว่าง)</label>
+    <div class="field">
+      <label for="autoRefresh">รีเฟรชอัตโนมัติ</label>
+      <select id="autoRefresh">
+        <option value="0">ปิด</option>
+        <option value="60">ทุก 1 นาที</option>
+        <option value="300">ทุก 5 นาที</option>
+        <option value="600">ทุก 10 นาที</option>
+      </select>
+    </div>
+    <button class="btn" type="button" id="loadBtn" disabled>โหลดข้อมูล</button>
+    <span class="progress" id="progress" role="status"></span>
+    <div class="loaded-at" id="loadedAt"></div>
+  </div>
+
+  <div class="kpis" id="kpis" hidden></div>
+
+  <section class="panel" id="chartPanel" hidden>
+    <div class="panel-head">
+      <h2>รายชั่วโมง</h2>
+      <div class="legend">
+        <span><i style="background:var(--primary-soft)"></i>สั่งใน opitemrece (rxtime)</span>
+        <span><i style="background:var(--primary)"></i>เข้าเครื่อง (modify_datetime)</span>
+        <span>ตัวเลขใต้แท่ง = เวลารอเฉลี่ยจากเข้าเครื่องถึง gateway (นาที)</span>
+      </div>
+    </div>
+    <div class="panel-body"><div class="chart" id="chart"></div></div>
+  </section>
+
+  <section class="panel" id="listPanel" hidden>
+    <div class="panel-head">
+      <h2>รายการ</h2>
+      <div class="chips" id="chips" role="group" aria-label="กรองตามสถานะ"></div>
+    </div>
+    <div class="filters">
+      <input type="search" id="q" placeholder="ค้นหา HN / VN / icode / ชื่อยา / ชื่อผู้ป่วย" autocomplete="off" aria-label="ค้นหา">
+      <select id="depFilter" aria-label="กรองตามแผนกที่สั่ง"></select>
+      <select id="sortBy" aria-label="เรียงลำดับ">
+        <option value="time">เรียง: เวลาล่าสุดก่อน</option>
+        <option value="timeAsc">เรียง: เวลาเก่าก่อน</option>
+        <option value="vn">เรียง: VN</option>
+      </select>
+      <span class="muted" id="listCount" role="status"></span>
+      <span class="spacer"></span>
+      <button class="btn secondary small" type="button" id="expandBtn">ขยายทั้งหมด</button>
+      <button class="btn secondary small" type="button" id="csvBtn">ส่งออก CSV</button>
+    </div>
+    <div class="table-wrap" id="tableWrap"></div>
+    <div class="more" id="more" hidden>
+      <button class="btn secondary small" type="button" id="moreBtn">แสดงเพิ่ม</button>
+      <span class="muted" id="moreText"></span>
+    </div>
+  </section>
+
+  <div class="panel" id="introPanel">
+    <div class="empty">
+      <strong>วาง BMS Session ID แล้วกดเชื่อมต่อ</strong>
+      ระบบจะดึง opd_presc_machine (ตามวันที่ modify_datetime) และ opitemrece ของยาที่ตั้งเข้าเครื่อง (ตาม vstdate)
+      มาเทียบกันด้วย hos_guid — อ่านอย่างเดียว ไม่เขียนฐานข้อมูล
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* =========================================================================
+   Dashboard ตรวจข้อมูลเข้า gateway เครื่องนับเม็ดยา — อ่านอย่างเดียวผ่าน BMS Session (/api/sql)
+
+   ต้นทาง   : opd_presc_machine  WHERE modify_datetime::date = วันที่
+   เทียบกับ : opitemrece         WHERE vstdate = วันที่ AND icode IN (ยาที่ตั้งเข้าเครื่อง)
+   ยาเข้าเครื่อง: drugitems WHERE medication_machine_flag='Y' AND medication_machine_id IS NULL AND istatus='Y'
+             (~1,400 รหัส ใส่ IN(...) ตรง ๆ ไม่ได้ เพราะ URL เกิน 2,048 → ใช้ subquery)
+   คีย์เทียบ : hos_guid (ไม่ซ้ำในตารางเครื่อง)
+
+   ข้อสังเกตจากฐานจริง รพ.หาดใหญ่ (2026-10-05):
+   - opd_presc_machine.depcode = ห้องจ่ายยา (B01, 246) ส่วน opitemrece.dep_code = แผนกที่สั่ง
+     จึงใช้ "VN นี้เข้าเครื่องแล้วหรือยัง" แยกรายการตกหล่นจริง ออกจาก visit ที่ไม่ได้ส่งเครื่องเลย
+   - รายการตกหล่นส่วนใหญ่ qty = 0 (ยาที่หยุด/งดจ่าย) → แยกหมวดไว้ ไม่นับเป็นปัญหา
+   - qty ไม่ตรง = แก้ opitemrece หลังส่งเข้าเครื่องแล้ว (last_modified > modify_datetime)
+
+   ข้อจำกัด tunnel: URL ≤ ~2,048 · ห้าม DISTINCT · ยิงทีละคำสั่ง · ชื่อคนไข้ต้องอยู่ในนิพจน์ (||)
+   ========================================================================= */
+const APP_NAME = 'BMS.DrugMachine.Gateway';
+const APP_VERSION = '2026-10-05.6';
+const PASTEJSON_URL = 'https://hosxp.net/phapi/PasteJSON';
+const SID_PARAM = 'bms-session-id';
+const MKT_PARAMS = ['marketplace-token', 'marketplace_token'];
+const TIMEOUT_MS = 60000;
+const URL_MAX = 2000;
+const PAGE = 500;           // ข้อมูลเกิน 500 แถวแยกดึงเป็นหน้า ๆ ละ 500 (~0.3 MB ต่อคำสั่ง ต่ำกว่าเพดาน ~1.2 MB)
+const SHOW_STEP = 300;      // แถวที่วาดต่อครั้ง
+const LS_SID = 'drugMachine.sid';
+const LS_PREF = 'drugMachine.pref';
+
+const DRUG_WHERE = "medication_machine_flag = 'Y' AND medication_machine_id IS NULL AND istatus = 'Y'";
+
+// สถานะ (เรียงตามความสำคัญ)
+const CAT = {
+  notick:  { label: 'ไม่ได้ติ๊กส่งเครื่องนับเม็ดยา', cls: 'err', hint: 'มีใน opitemrece แต่ไม่มีใน opd_presc_machine' },
+  nosend:  { label: 'gateway ไม่ส่ง', cls: 'err', hint: 'opd_presc_machine.dispensstatus <> 999' },
+  orphan:  { label: 'ไม่พบใน opitemrece', cls: 'warn', hint: 'มีในเครื่อง แต่ไม่มี hos_guid นี้ใน opitemrece (ถูกลบหลังส่ง)' },
+  qty:     { label: 'จำนวนไม่ตรง', cls: 'warn', hint: 'qty ใน opitemrece ≠ qty ในเครื่อง' },
+  ok:      { label: 'ตรงกัน', cls: 'ok', hint: 'hos_guid และ qty ตรงกัน และ gateway ส่งแล้ว (999)' },
+  outside: { label: 'เข้าเครื่อง (นอกเงื่อนไข)', cls: 'info', hint: 'อยู่ในเครื่อง แต่รายการ opitemrece ไม่เข้าเงื่อนไข (คนละวัน / IPD / ยาไม่อยู่ในรายการ)' },
+};
+const CAT_ORDER = ['notick', 'nosend', 'orphan', 'qty', 'ok', 'outside'];
+const SENT = 999;   // dispensstatus ที่ gateway ส่งเครื่องแล้ว (ค่าอื่นที่เจอจริงคือ 0)
+
+const $ = id => document.getElementById(id);
+const state = {
+  conn: null, user: null, mkt: '', pg: true,
+  drugs: new Map(),        // icode → {name, strength, units}
+  deps: new Map(),         // depcode → ชื่อ
+  names: new Map(),        // hn → ชื่อ
+  items: [], counts: {}, day: '',
+  cat: 'notick', shown: SHOW_STEP, open: new Set(), vnCount: new Map(), loading: false, timer: 0,
+};
+
+// ============================================================
+// เครื่องมือทั่วไป
+// ============================================================
+function esc(s) {
+  return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+const str = v => (v == null ? '' : String(v).trim());
+const sq = v => "'" + String(v ?? '').replace(/['\\]/g, '') + "'";
+const chunk = (arr, n) => { const out = []; for (let i = 0; i < arr.length; i += n) out.push(arr.slice(i, i + n)); return out; };
+const sleep = ms => new Promise(res => setTimeout(res, ms));
+const num = v => (v == null || v === '' ? null : Number(v));
+const fmtN = n => Number(n || 0).toLocaleString('th-TH');
+const pct = (a, b) => b ? (a * 100 / b).toFixed(1) + '%' : '—';
+const val = (row, key) => row[key] ?? row[key.toUpperCase()];
+
+function todayIso() {
+  const n = new Date();
+  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+}
+// "2026-10-05T08:01:44" / "2026-10-05 08:01:44" → ms (เวลาท้องถิ่น) · ไม่มีค่า → null
+function ts(v) {
+  const s = str(v);
+  if (!s) return null;
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})(?::(\d{2}))?/);
+  if (!m) return null;
+  return new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +(m[6] || 0)).getTime();
+}
+const hhmm = v => { const s = str(v).match(/[T ](\d{2}:\d{2})/); return s ? s[1] : ''; };
+const ymdOf = v => str(v).slice(0, 10);
+function fmtLag(min) {
+  if (min == null) return '';
+  if (min < 1) return '<1 นาที';
+  if (min < 60) return Math.round(min) + ' นาที';
+  return Math.floor(min / 60) + ' ชม. ' + Math.round(min % 60) + ' นาที';
+}
+const lagCls = min => min == null ? '' : min < 15 ? 'lag-ok' : min < 60 ? 'lag-warn' : 'lag-err';
+
+let toastTimer = 0;
+function toast(kind, msg) {
+  const el = $('toast');
+  el.className = 'toast show ' + (kind || '');
+  el.textContent = msg;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), kind === 'err' ? 6000 : 3200);
+}
+function setPill(kind, text) {
+  $('sessionPill').className = 'session-pill' + (kind ? ' ' + kind : '');
+  $('sessionPillText').textContent = text;
+  $('sessionPill').title = text;
+}
+function notice(msg) { $('notice').hidden = !msg; $('notice').textContent = msg || ''; }
+function progress(msg) { $('progress').textContent = msg || ''; }
+
+// ============================================================
+// SESSION
+// ============================================================
+function saveSid(sid) {
+  try { localStorage.setItem(LS_SID, sid); } catch {}
+}
+function loadSid() {
+  try { const v = localStorage.getItem(LS_SID); if (v) return v; } catch {}
+  try { const m = document.cookie.match(/(?:^|; )bms-session-id=([^;]*)/); return m ? decodeURIComponent(m[1]) : ''; } catch { return ''; }
+}
+function forgetSid() { try { localStorage.removeItem(LS_SID); } catch {} }
+
+// เปิดผ่าน serve.py / serve.ps1 ต้องผ่าน /proxy — tunnel ไม่ส่ง CORS header ให้ localhost
+function proxied(u) {
+  const direct = location.protocol === 'file:' || /(^|\.)hosxp\.net$/i.test(location.hostname);
+  return direct ? u : `${location.origin}/proxy?url=${encodeURIComponent(u)}`;
+}
+
+async function fetchJson(url, headers) {
+  const ctrl = new AbortController();
+  const tid = setTimeout(() => ctrl.abort(), TIMEOUT_MS);
+  try {
+    const res = await fetch(url, { headers: { Accept: 'application/json', ...(headers || {}) }, signal: ctrl.signal });
+    const text = await res.text();
+    let json = null;
+    try { json = JSON.parse(text); } catch {}
+    if (!json || typeof json !== 'object') {
+      // 502 จาก /proxy = เครื่องที่รัน start.bat ต่อ hosxp.net ไม่ได้ — body เป็นสาเหตุจริง
+      const proxyErr = /^proxy error:/i.test(text.trim()) ? text.trim().replace(/^proxy error:\s*/i, '').slice(0, 400) : '';
+      return { MessageCode: res.ok ? 0 : res.status, http: res.status, empty: !text.trim(), nonJson: true, proxyErr,
+               Message: proxyErr ? `เครื่องหลัก ${location.host} ต่อ HOSxP ไม่ได้ — ${proxyErr}`
+                 : `HTTP ${res.status} (${text.trim() ? 'ตอบกลับไม่ใช่ JSON' : 'ตอบกลับว่าง'})` };
+    }
+    if (json.MessageCode == null) json.MessageCode = res.status;
+    json.http = res.status;
+    return json;
+  } catch (e) {
+    return { MessageCode: 0, Message: e.name === 'AbortError' ? 'หมดเวลารอ (timeout)' : 'Network: ' + e.message, network: true };
+  } finally {
+    clearTimeout(tid);
+  }
+}
+
+function extractConn(data) {
+  const r = data.result || {};
+  const ui = r.user_info || {};
+  const kv = (r.key_value && typeof r.key_value === 'object') ? r.key_value : {};
+  const apiUrl = kv['hosxp.api_url'] || ui['hosxp.api_url'] || ui.bms_url || '';
+  const authKey = kv['hosxp.api_auth_key'] || ui['hosxp.api_auth_key'] || ui.bms_session_code
+    || (typeof r.key_value === 'string' ? r.key_value : '');
+  const clean = String(apiUrl).replace(/\/+$/, '').replace(/\/api(\/sql)?$/i, '').replace(/\/+$/, '');
+  return { apiUrl: clean, authKey: String(authKey || ''), user: ui };
+}
+
+function explain(r) {
+  if (!r) return 'ไม่ทราบสาเหตุ';
+  if (r.network) {
+    return location.protocol === 'file:'
+      ? 'ส่งคำสั่งไม่ได้ เพราะเปิดไฟล์ตรงจากดิสก์ — รัน start.bat แล้วเปิด MAIN URL ที่หน้าต่างนั้นแสดง'
+      : `ส่งคำสั่งไป HOSxP ไม่ได้ (${r.Message}) — ตรวจว่าหน้าต่าง start.bat บนเครื่อง ${location.host} ยังเปิดอยู่`;
+  }
+  if (isAuthErr(r)) return `Session หมดอายุหรือไม่ถูกต้อง (${r.MessageCode}) — ขอ session ID ใหม่จาก HOSxP`;
+  return `${r.MessageCode}: ${r.Message || 'ผิดพลาด'}`;
+}
+
+// ============================================================
+// SQL — ยิงทีละคำสั่งตามคิว
+// ============================================================
+let sqlChain = Promise.resolve();
+function sql(text) {
+  const job = () => runSql(text);
+  const p = sqlChain.then(job, job);
+  sqlChain = p.catch(() => {});
+  return p;
+}
+const BUSY_CODES = [409, 501, 503, 504];
+const SQL_ERR_RE = /does not exist|doesn'?t exist|unknown (column|table|field)|no such (column|table)|syntax error|undefined (column|table|function)|ambiguous|validation/i;
+const isAuthErr = r => !!r && !r.network && (r.MessageCode === 401 || /authoriz/i.test(String(r.Message || '')));
+const ok = r => !!r && r.MessageCode === 200 && Array.isArray(r.data);
+
+async function runSql(text) {
+  if (!state.conn) return { MessageCode: 0, Message: 'ยังไม่ได้เชื่อมต่อ' };
+  const s = text.replace(/\s+/g, ' ').trim();
+  let target = `${state.conn.apiUrl}/api/sql?sql=${encodeURIComponent(s)}&app=${encodeURIComponent(APP_NAME)}`;
+  if (state.mkt) target += `&marketplace-token=${encodeURIComponent(state.mkt)}`;
+  if (target.length > URL_MAX) {
+    const r = { MessageCode: 414, Message: `คำสั่งยาว ${target.length} ตัวอักษร เกินที่ tunnel รับได้ (~2,000)` };
+    console.warn('[sql] ' + r.Message + '\n' + s);
+    return r;
+  }
+  const t0 = performance.now();
+  let r;
+  for (let a = 0; ; a++) {
+    r = await fetchJson(proxied(target), { Authorization: `Bearer ${state.conn.authKey}` });
+    const busy = !isAuthErr(r) && !SQL_ERR_RE.test(String(r.Message || ''))
+      && (r.empty || BUSY_CODES.includes(r.MessageCode) || BUSY_CODES.includes(r.http));
+    if (!busy || a >= 4) break;
+    await sleep(Math.min(1200, 250 * 2 ** a) + Math.random() * 150);
+  }
+  const ms = Math.round(performance.now() - t0);
+  if (ok(r)) console.debug(`[sql] OK ${r.data.length} แถว · ${ms} ms\n${s}`);
+  else console.warn(`[sql] ERR ${r.MessageCode} ${r.Message || ''}\n${s}`);
+  if (isAuthErr(r)) sessionLost();
+  return r;
+}
+
+/* ดึงทีละหน้าแบบ keyset (คีย์ > ค่าสุดท้าย) แล้ววนจนได้หน้าว่าง
+   /api/sql ตัดคำตอบที่เกิน ~1.2 MB ทิ้งเงียบ ๆ (record_count ก็บอกจำนวนที่ตัดแล้ว) —
+   ถ้าใช้ OFFSET หน้าที่ถูกตัดจะทำแถวหายกลางทาง, keyset แค่ได้หน้าเพิ่ม */
+async function pagedRows(build, keyOf, first, label) {
+  const out = [];
+  let after = first;
+  for (;;) {
+    progress(`${label} หน้า ${Math.floor(out.length / PAGE) + 1} · ${fmtN(out.length)} แถว...`);
+    const r = await sql(build(PAGE, after));
+    if (!ok(r)) return { err: r };
+    if (!r.data.length) return { rows: out };
+    out.push(...r.data);
+    after = keyOf(r.data[r.data.length - 1]);
+  }
+}
+
+// ============================================================
+// เชื่อมต่อ
+// ============================================================
+async function connect(sid, opts) {
+  const fromStore = !!(opts && opts.fromStore);
+  notice('');
+  setPill('warn', 'กำลังเชื่อมต่อ...');
+  $('connectBtn').disabled = true;
+  const data = await fetchJson(proxied(`${PASTEJSON_URL}?Action=GET&code=${encodeURIComponent(sid)}`));
+  $('connectBtn').disabled = false;
+
+  if (data.MessageCode !== 200) {
+    const msg = data.network ? explain(data)
+      : data.proxyErr ? `${data.Message} · ตรวจอินเทอร์เน็ต / proxy / firewall ของเครื่อง ${location.hostname} (หน้าต่าง start.bat แสดงผลทดสอบ hosxp.net)`
+      : data.nonJson ? `hosxp.net ตอบกลับผิดรูปแบบ (HTTP ${data.MessageCode})`
+      : `Session ใช้ไม่ได้: ${data.Message || data.MessageCode}`;
+    setPill('err', data.network || data.proxyErr ? 'เชื่อมต่อไม่ได้' : 'Session ใช้ไม่ได้');
+    notice(msg);
+    if (fromStore && !data.network && !data.nonJson && !data.proxyErr) { forgetSid(); $('sessionId').value = ''; }
+    return;
+  }
+  const c = extractConn(data);
+  if (!c.apiUrl || !c.authKey) {
+    setPill('err', 'Session ไม่มีข้อมูล API');
+    notice('Session ถูกต้องแต่ไม่มี api_url / auth key สำหรับ /api/sql');
+    return;
+  }
+  state.conn = { apiUrl: c.apiUrl, authKey: c.authKey };
+  state.user = c.user;
+  saveSid(sid);
+  $('sessionForm').hidden = true;
+  $('disconnectBtn').hidden = false;
+
+  setPill('warn', 'กำลังตรวจฐานข้อมูล...');
+  const v = await sql('SELECT version() AS v');
+  if (!ok(v)) { setPill('err', 'ส่ง SQL ไม่ผ่าน'); notice(explain(v)); return; }
+  state.pg = /postgre/i.test(str(v.data[0] && val(v.data[0], 'v')) || str(state.user.bms_database_type));
+
+  const okDrugs = await loadDrugs();
+  if (!okDrugs) return;
+
+  const who = state.user.name || 'เชื่อมต่อแล้ว';
+  const where = state.user.location || state.conn.apiUrl.replace(/^https?:\/\//, '');
+  setPill('ok', `${who} · ${where}`);
+  $('loadBtn').disabled = false;
+  loadDashboard();
+}
+
+async function loadDrugs() {
+  progress('โหลดรายการยาที่ตั้งเข้าเครื่อง...');
+  const r = await sql(`SELECT icode, name, strength, units FROM drugitems WHERE ${DRUG_WHERE} ORDER BY icode`);
+  progress('');
+  if (!ok(r)) { setPill('err', 'โหลด drugitems ไม่ได้'); notice(explain(r)); return false; }
+  state.drugs.clear();
+  r.data.forEach(d => state.drugs.set(str(val(d, 'icode')), {
+    name: str(val(d, 'name')), strength: str(val(d, 'strength')), units: str(val(d, 'units')),
+  }));
+  return true;
+}
+
+function resetConnectionUi() {
+  $('sessionForm').hidden = false;
+  $('disconnectBtn').hidden = true;
+  $('loadBtn').disabled = true;
+  stopTimer();
+}
+function sessionLost() {
+  if (!state.conn) return;
+  state.conn = null;
+  forgetSid();
+  resetConnectionUi();
+  $('sessionId').value = '';
+  setPill('err', 'Session หมดอายุ');
+  notice('Session หมดอายุหรือถูกยกเลิก — วาง session ID ใหม่จาก HOSxP แล้วกดเชื่อมต่อ');
+}
+function disconnect() {
+  state.conn = null; state.user = null;
+  forgetSid();
+  resetConnectionUi();
+  $('sessionId').value = '';
+  setPill('', 'ยังไม่เชื่อมต่อ');
+  notice('');
+  toast('', 'ตัดการเชื่อมต่อแล้ว');
+}
+
+// ============================================================
+// โหลด + เทียบข้อมูล
+// ============================================================
+function machineSql(day) {
+  return (lim, after) => `SELECT m.opd_presc_machine_id AS mid, m.hos_guid, m.vn, m.hn,
+    (m.pname || m.fname || ' ' || m.lname) AS ptname, m.icode, m.dname, m.qty,
+    m.modify_datetime AS mdt, m.gateway_flag_datetime AS gdt, m.dispensstatus AS dst, m.depcode,
+    m.tomachineno AS mno, m.modify_staff AS mstaff,
+    o.hos_guid AS ohg, o.qty AS oqty, o.vstdate AS ovstdate, o.an AS oan, o.dep_code AS odep,
+    o.rxdate, o.rxtime, o.staff AS ostaff, o.last_modified AS olm
+    FROM opd_presc_machine m LEFT JOIN opitemrece o ON o.hos_guid = m.hos_guid
+    WHERE m.modify_datetime::date = ${sq(day)} AND m.opd_presc_machine_id > ${Number(after) || 0}
+    ORDER BY m.opd_presc_machine_id LIMIT ${lim}`;
+}
+function opiSql(day, opdOnly) {
+  return (lim, after) => `SELECT o.hos_guid, o.vn, o.hn, o.an, o.icode, o.qty, o.rxdate, o.rxtime,
+    o.dep_code AS odep, o.staff AS ostaff, o.last_modified AS olm, m.opd_presc_machine_id AS mid
+    FROM opitemrece o LEFT JOIN opd_presc_machine m ON m.hos_guid = o.hos_guid
+    WHERE o.vstdate = ${sq(day)}${opdOnly ? ' AND o.an IS NULL' : ''}
+    AND o.icode IN (SELECT icode FROM drugitems WHERE ${DRUG_WHERE})${after ? ` AND o.hos_guid > ${sq(after)}` : ''}
+    ORDER BY o.hos_guid LIMIT ${lim}`;
+}
+
+async function loadDashboard() {
+  if (!state.conn || state.loading) return;
+  const day = $('day').value || todayIso();
+  const opdOnly = $('opdOnly').checked;
+  state.loading = true;
+  $('loadBtn').disabled = true;
+  notice('');
+  const t0 = performance.now();
+  try {
+    const mc = await pagedRows(machineSql(day), r => val(r, 'mid'), 0, 'opd_presc_machine');
+    if (mc.err) { notice('โหลด opd_presc_machine ไม่ได้ — ' + explain(mc.err)); return; }
+    const op = await pagedRows(opiSql(day, opdOnly), r => str(val(r, 'hos_guid')), '', 'opitemrece');
+    if (op.err) { notice('โหลด opitemrece ไม่ได้ — ' + explain(op.err)); return; }
+
+    build(day, mc.rows, op.rows);
+    mc.rows.forEach(r => { const n = str(val(r, 'ptname')); if (n) state.names.set(str(val(r, 'hn')), n); });
+    await loadDepNames();
+    state.shown = SHOW_STEP;
+    renderAll();
+    const sec = ((performance.now() - t0) / 1000).toFixed(1);
+    const d = new Date();
+    $('loadedAt').innerHTML = `ข้อมูลวันที่ <b>${esc(day)}</b>${opdOnly ? ' · OPD' : ''}<br>`
+      + `โหลดเมื่อ ${d.toLocaleTimeString('th-TH')} · ${sec} วินาที`;
+  } finally {
+    state.loading = false;
+    $('loadBtn').disabled = !state.conn;
+    progress('');
+  }
+}
+
+/* รวมสองฝั่งเป็นรายการเดียวต่อ hos_guid แล้วให้สถานะ */
+function build(day, mRows, oRows) {
+  const items = [];
+  const byGuid = new Map();
+  const vnSend = new Map();     // vn → เวลาเข้าเครื่องล่าสุด (ms)
+
+  for (const r of mRows) {
+    const it = {
+      guid: str(val(r, 'hos_guid')), vn: str(val(r, 'vn')), hn: str(val(r, 'hn')),
+      icode: str(val(r, 'icode')), dname: str(val(r, 'dname')),
+      mid: val(r, 'mid'), mqty: num(val(r, 'qty')), mdt: str(val(r, 'mdt')), gdt: str(val(r, 'gdt')),
+      dst: str(val(r, 'dst')), mdep: str(val(r, 'depcode')), mno: str(val(r, 'mno')), mstaff: str(val(r, 'mstaff')),
+      inOpi: !!str(val(r, 'ohg')), oqty: num(val(r, 'oqty')), an: str(val(r, 'oan')),
+      odep: str(val(r, 'odep')), rxdate: ymdOf(val(r, 'rxdate')), rxtime: str(val(r, 'rxtime')),
+      ostaff: str(val(r, 'ostaff')), olm: str(val(r, 'olm')), ovstdate: ymdOf(val(r, 'ovstdate')),
+      inScope: false,
+    };
+    const m = ts(it.mdt), g = ts(it.gdt);
+    it.lag = m != null && g != null ? (g - m) / 60000 : null;
+    if (m != null && (!vnSend.has(it.vn) || vnSend.get(it.vn) < m)) vnSend.set(it.vn, m);
+    byGuid.set(it.guid, it);
+    items.push(it);
+  }
+
+  for (const r of oRows) {
+    const guid = str(val(r, 'hos_guid'));
+    const vn = str(val(r, 'vn'));
+    const o = {
+      oqty: num(val(r, 'qty')), an: str(val(r, 'an')), odep: str(val(r, 'odep')),
+      rxdate: ymdOf(val(r, 'rxdate')), rxtime: str(val(r, 'rxtime')),
+      ostaff: str(val(r, 'ostaff')), olm: str(val(r, 'olm')),
+    };
+    let it = byGuid.get(guid);
+    if (it) { Object.assign(it, o); it.inScope = true; it.inOpi = true; continue; }
+    it = { guid, vn, hn: str(val(r, 'hn')), icode: str(val(r, 'icode')), dname: '',
+           mid: val(r, 'mid'), mqty: null, inOpi: true, inScope: true, ...o };
+    if (it.mid != null) it.otherDay = true;   // อยู่ในเครื่องแต่ modify_datetime คนละวัน
+    byGuid.set(guid, it);
+    items.push(it);
+    if (it.mid != null && !vnSend.has(vn)) vnSend.set(vn, null);
+  }
+
+  const counts = Object.fromEntries(CAT_ORDER.map(k => [k, 0]));
+  const vnSets = Object.fromEntries(CAT_ORDER.map(k => [k, new Set()]));
+  for (const it of items) {
+    const inMachine = it.mid != null;
+    // เงื่อนไข 1: มีใน opitemrece แต่ไม่มีใน opd_presc_machine = ไม่ได้ติ๊กส่งเครื่องนับเม็ดยา
+    // เงื่อนไข 2: opd_presc_machine.dispensstatus <> 999 = gateway ไม่ส่ง
+    if (inMachine && !it.otherDay) {
+      if (Number(it.dst) !== SENT) it.cat = 'nosend';
+      else if (!it.inOpi) it.cat = 'orphan';
+      else if (it.oqty !== it.mqty) it.cat = 'qty';
+      else if (!it.inScope) it.cat = 'outside';
+      else it.cat = 'ok';
+    } else if (inMachine) {
+      it.cat = 'ok';   // ส่งเครื่องวันอื่น — เทียบ qty ไม่ได้เพราะไม่ได้ดึงแถวเครื่องมา
+    } else it.cat = 'notick';
+
+    // คำอธิบายช่วยไล่ปัญหา
+    const rx = ts(it.rxdate && it.rxtime ? `${it.rxdate} ${it.rxtime}` : '');
+    const send = vnSend.get(it.vn);
+    if (it.cat === 'notick') {
+      it.note = !(it.oqty > 0) ? 'qty 0'
+        : !vnSend.has(it.vn) ? 'ทั้ง VN ไม่มีรายการเข้าเครื่อง'
+        : rx != null && send != null && rx > send ? 'VN มีรายการอื่นเข้าเครื่อง · สั่งเพิ่มหลังส่งแล้ว'
+        : 'VN มีรายการอื่นเข้าเครื่องแล้ว';
+    }
+    if (it.cat === 'nosend') it.note = `dispensstatus = ${it.dst === '' ? 'ว่าง' : it.dst}`;
+    if (it.cat === 'qty') {
+      const lm = ts(it.olm), m = ts(it.mdt);
+      if (lm != null && m != null && lm > m) it.note = `แก้ opitemrece หลังส่งเข้าเครื่อง (${hhmm(it.olm)})`;
+    }
+    if (it.cat === 'outside') {
+      it.note = it.ovstdate && it.ovstdate !== day ? `opitemrece vstdate ${it.ovstdate}`
+        : it.an ? 'รายการ IPD (an ' + it.an + ')'
+        : !state.drugs.has(it.icode) ? 'ยาไม่อยู่ในรายการตั้งเข้าเครื่อง' : '';
+    }
+    if (it.otherDay) it.note = 'อยู่ในเครื่อง แต่ไม่อยู่ในชุดของวันนี้ (เพิ่งเข้าระหว่างโหลด หรือ modify_datetime คนละวัน)';
+    if (it.mid != null && it.icode && !state.drugs.has(it.icode) && it.cat !== 'outside') {
+      it.note = (it.note ? it.note + ' · ' : '') + 'ยาไม่อยู่ในรายการตั้งเข้าเครื่อง';
+    }
+    it.sortTs = ts(it.mdt) ?? rx ?? 0;
+    counts[it.cat]++;
+    vnSets[it.cat].add(it.vn);
+  }
+
+  const lags = items.filter(it => it.lag != null && !it.otherDay).map(it => it.lag).sort((a, b) => a - b);
+  state.items = items;
+  state.vnCount = new Map();
+  items.forEach(it => state.vnCount.set(it.vn, (state.vnCount.get(it.vn) || 0) + 1));
+  state.counts = counts;
+  state.vnCounts = Object.fromEntries(CAT_ORDER.map(k => [k, vnSets[k].size]));
+  state.day = day;
+  state.summary = {
+    machine: mRows.length,
+    machineVn: new Set(mRows.map(r => str(val(r, 'vn')))).size,
+    opi: oRows.length,
+    opiSent: oRows.filter(r => val(r, 'mid') != null).length,
+    sent: items.filter(it => it.mid != null && !it.otherDay && Number(it.dst) === SENT).length,
+    noTickVn: new Set(items.filter(it => it.cat === 'notick' && !vnSend.has(it.vn)).map(it => it.vn)).size,
+    noTickPartial: new Set(items.filter(it => it.cat === 'notick' && vnSend.has(it.vn)).map(it => it.vn)).size,
+    opiVn: new Set(oRows.map(r => str(val(r, 'vn')))).size,
+    opiSentVn: new Set(oRows.filter(r => val(r, 'mid') != null).map(r => str(val(r, 'vn')))).size,
+    sentVn: new Set(items.filter(it => it.mid != null && !it.otherDay && Number(it.dst) === SENT).map(it => it.vn)).size,
+    allVn: new Set(items.map(it => it.vn)).size,
+    lagAvg: lags.length ? lags.reduce((a, b) => a + b, 0) / lags.length : null,
+    lagP90: lags.length ? lags[Math.min(lags.length - 1, Math.floor(lags.length * 0.9))] : null,
+    lagMax: lags.length ? lags[lags.length - 1] : null,
+  };
+}
+
+async function loadDepNames() {
+  const codes = [...new Set(state.items.flatMap(it => [it.odep, it.mdep]).filter(c => c && !state.deps.has(c)))];
+  for (const part of chunk(codes, 60)) {
+    const r = await sql(`SELECT depcode, department FROM kskdepartment WHERE depcode IN (${part.map(sq).join(',')})`);
+    if (!ok(r)) break;
+    r.data.forEach(d => state.deps.set(str(val(d, 'depcode')), str(val(d, 'department'))));
+    part.forEach(c => { if (!state.deps.has(c)) state.deps.set(c, ''); });
+  }
+}
+const depLabel = c => {
+  if (!c) return '';
+  const n = state.deps.get(c);
+  return n ? (n.startsWith(c) ? n : `${c} ${n}`) : c;
+};
+
+// ชื่อผู้ป่วยของรายการที่ไม่มีในเครื่อง — ดึงเฉพาะแถวที่กำลังแสดง
+let nameJob = null;
+async function ensureNames(list) {
+  const need = [...new Set(list.map(it => it.hn).filter(h => h && !state.names.has(h)))];
+  if (!need.length || nameJob) return;
+  nameJob = (async () => {
+    for (const part of chunk(need, 70)) {
+      const r = await sql(`SELECT hn, (pname || fname || ' ' || lname) AS ptname FROM patient WHERE hn IN (${part.map(sq).join(',')})`);
+      if (!ok(r)) break;
+      r.data.forEach(p => state.names.set(str(val(p, 'hn')), str(val(p, 'ptname'))));
+      part.forEach(h => { if (!state.names.has(h)) state.names.set(h, ''); });
+    }
+  })();
+  await nameJob;
+  nameJob = null;
+  renderTable();
+}
+
+// ============================================================
+// แสดงผล
+// ============================================================
+function renderAll() {
+  $('introPanel').hidden = true;
+  $('kpis').hidden = false;
+  $('chartPanel').hidden = false;
+  $('listPanel').hidden = false;
+  renderKpis();
+  renderChart();
+  renderDepFilter();
+  renderChips();
+  renderTable();
+}
+
+function renderKpis() {
+  // ยอดหลัก = จำนวน VN ไม่ซ้ำ (VN หนึ่งอาจอยู่หลายสถานะ) · จำนวนรายการเป็นตัวรอง
+  const s = state.summary, c = state.counts, v = state.vnCounts;
+  const tile = (key, cls, label, n, sub, clickable = true) => `
+    <button type="button" class="kpi ${cls}${n ? ' hot' : ''}${clickable ? '' : ' plain'}" ${clickable ? `data-cat="${key}" aria-pressed="${state.cat === key}"` : 'disabled'}
+      title="${esc(CAT[key] ? CAT[key].hint : '')}">
+      <div class="k">${esc(label)}</div><div class="v">${fmtN(n)} <small>VN</small></div><div class="s">${sub}</div>
+    </button>`;
+  const items = k => `${fmtN(c[k])} รายการ`;
+  $('kpis').innerHTML = [
+    tile('all', 'plain', 'เข้าเครื่อง (opd_presc_machine)', s.machineVn, `${fmtN(s.machine)} รายการ`, false),
+    tile('all', 'plain', 'มียาเครื่องใน opitemrece', s.opiVn,
+      `${fmtN(s.opi)} รายการ · VN ที่เข้าเครื่อง ${fmtN(s.opiSentVn)} (${pct(s.opiSentVn, s.opiVn)})`, false),
+    tile('notick', 'err', '① ไม่ได้ติ๊กส่งเครื่องนับเม็ดยา', v.notick,
+      `${items('notick')}<br>ทั้ง VN ไม่เข้า ${fmtN(s.noTickVn)} VN · ส่งบางรายการ ${fmtN(s.noTickPartial)} VN`),
+    tile('nosend', 'err', '② gateway ไม่ส่ง', v.nosend,
+      `${items('nosend')} · dispensstatus <> 999<br>VN ที่ส่งแล้ว (999) ${fmtN(s.sentVn)}`),
+    tile('qty', 'warn', 'จำนวนไม่ตรง', v.qty, `${items('qty')} · qty opitemrece ≠ เครื่อง`),
+    tile('orphan', 'warn', 'ไม่พบใน opitemrece', v.orphan, `${items('orphan')} · hos_guid หายจาก opitemrece`),
+    tile('ok', 'ok', 'ตรงกัน', v.ok,
+      items('ok') + (s.lagAvg == null ? '' : `<br>รอ gateway เฉลี่ย ${fmtLag(s.lagAvg)} · สูงสุด ${fmtLag(s.lagMax)}`)),
+  ].join('');
+}
+
+function renderChart() {
+  const rx = new Array(24).fill(0), mc = new Array(24).fill(0), lagSum = new Array(24).fill(0), lagN = new Array(24).fill(0);
+  for (const it of state.items) {
+    if (it.inScope && it.rxdate === state.day) {
+      const h = parseInt(str(it.rxtime).slice(0, 2), 10);
+      if (h >= 0 && h < 24) rx[h]++;
+    }
+    if (it.mdt && !it.otherDay) {
+      const h = parseInt(hhmm(it.mdt).slice(0, 2), 10);
+      if (h >= 0 && h < 24) { mc[h]++; if (it.lag != null) { lagSum[h] += it.lag; lagN[h]++; } }
+    }
+  }
+  let lo = 24, hi = -1;
+  for (let h = 0; h < 24; h++) if (rx[h] || mc[h]) { lo = Math.min(lo, h); hi = Math.max(hi, h); }
+  if (hi < 0) { $('chart').style.setProperty('--n', 1); $('chart').innerHTML = '<div class="empty">ไม่มีข้อมูล</div>'; return; }
+  const max = Math.max(...rx, ...mc, 1);
+  const cols = [];
+  for (let h = lo; h <= hi; h++) {
+    const lag = lagN[h] ? lagSum[h] / lagN[h] : null;
+    const tip = `${String(h).padStart(2, '0')}:00 — สั่ง ${rx[h]} · เข้าเครื่อง ${mc[h]}${lag != null ? ' · รอ gateway เฉลี่ย ' + fmtLag(lag) : ''}`;
+    cols.push(`<div class="hcol" title="${esc(tip)}">
+      <div class="bars"><div class="bar rx" style="height:${rx[h] / max * 100}%"></div><div class="bar mc" style="height:${mc[h] / max * 100}%"></div></div>
+      <div class="hlbl">${String(h).padStart(2, '0')}</div>
+      <div class="hlag ${lagCls(lag)}">${lag != null ? Math.round(lag) : '&nbsp;'}</div>
+    </div>`);
+  }
+  $('chart').style.setProperty('--n', hi - lo + 1);
+  $('chart').innerHTML = cols.join('');
+}
+
+function renderDepFilter() {
+  const sel = $('depFilter');
+  const prev = sel.value;
+  const cnt = new Map();
+  state.items.forEach(it => { if (it.odep) cnt.set(it.odep, (cnt.get(it.odep) || 0) + 1); });
+  const opts = [...cnt.entries()].sort((a, b) => b[1] - a[1])
+    .map(([c, n]) => `<option value="${esc(c)}">${esc(depLabel(c))} (${fmtN(n)})</option>`);
+  sel.innerHTML = '<option value="">ทุกแผนกที่สั่ง (dep_code)</option>' + opts.join('');
+  if (prev && cnt.has(prev)) sel.value = prev;
+}
+
+function renderChips() {
+  const total = state.summary.allVn;
+  $('chips').innerHTML = CAT_ORDER.map(k => `<button type="button" class="chip" data-cat="${k}" aria-pressed="${state.cat === k}" title="${esc(CAT[k].hint)}">
+      ${esc(CAT[k].label)} <b>${fmtN(state.vnCounts[k])}</b> VN</button>`).join('')
+    + `<button type="button" class="chip" data-cat="all" aria-pressed="${state.cat === 'all'}">ทั้งหมด <b>${fmtN(total)}</b> VN</button>`;
+}
+
+function filtered() {
+  const q = $('q').value.trim().toLowerCase();
+  const dep = $('depFilter').value;
+  let list = state.items.filter(it => (state.cat === 'all' || it.cat === state.cat) && (!dep || it.odep === dep));
+  if (q) {
+    list = list.filter(it => {
+      const d = state.drugs.get(it.icode);
+      return [it.hn, it.vn, it.icode, it.dname, d && d.name, state.names.get(it.hn), it.guid]
+        .some(x => x && String(x).toLowerCase().includes(q));
+    });
+  }
+  const sort = $('sortBy').value;
+  if (sort === 'vn') list.sort((a, b) => a.vn.localeCompare(b.vn) || a.icode.localeCompare(b.icode));
+  else if (sort === 'timeAsc') list.sort((a, b) => a.sortTs - b.sortTs);
+  else list.sort((a, b) => b.sortTs - a.sortTs);
+  return list;
+}
+
+function drugCell(it) {
+  const d = state.drugs.get(it.icode);
+  const name = it.dname || (d ? [d.name, d.strength].filter(Boolean).join(' ') : '');
+  return `<div>${esc(name || '—')}</div><div class="sub mono">${esc(it.icode)}${d && d.units ? ' · ' + esc(d.units) : ''}</div>`;
+}
+
+// รวมรายการที่ผ่านตัวกรองเป็นกลุ่มตาม VN (ลำดับกลุ่มตามรายการแรกที่เจอหลังเรียงแล้ว)
+function groupByVn(list) {
+  const map = new Map();
+  for (const it of list) {
+    let g = map.get(it.vn);
+    if (!g) map.set(it.vn, g = { vn: it.vn, hn: it.hn, an: it.an, items: [], cats: {}, deps: new Map(), rxMin: '', rxMax: '', mdtMax: '' });
+    g.items.push(it);
+    g.cats[it.cat] = (g.cats[it.cat] || 0) + 1;
+    if (it.odep) g.deps.set(it.odep, (g.deps.get(it.odep) || 0) + 1);
+    const rx = str(it.rxtime).slice(0, 5);
+    if (rx) { if (!g.rxMin || rx < g.rxMin) g.rxMin = rx; if (rx > g.rxMax) g.rxMax = rx; }
+    if (it.mdt && it.mdt > g.mdtMax) g.mdtMax = it.mdt;
+  }
+  return [...map.values()];
+}
+const vnTotal = vn => (state.vnCount && state.vnCount.get(vn)) || 0;
+
+function renderTable() {
+  const list = filtered();
+  const groups = groupByVn(list);
+  const show = groups.slice(0, state.shown);
+  $('listCount').textContent = `${fmtN(groups.length)} VN · ${fmtN(list.length)} รายการ`;
+  if (!list.length) {
+    $('tableWrap').innerHTML = `<div class="empty"><strong>ไม่มีรายการ</strong>${esc(state.cat !== 'all' && CAT[state.cat] ? CAT[state.cat].hint : '')}</div>`;
+    $('more').hidden = true;
+    return;
+  }
+  const rows = show.map(g => {
+    const open = state.open.has(g.vn);
+    const ptn = state.names.get(g.hn);
+    const badges = CAT_ORDER.filter(k => g.cats[k])
+      .map(k => `<span class="badge ${CAT[k].cls}">${esc(CAT[k].label)} ${fmtN(g.cats[k])}</span>`).join(' ');
+    const dep = [...g.deps.entries()].sort((a, b) => b[1] - a[1]).map(([c]) => c);
+    const rx = g.rxMin ? (g.rxMin === g.rxMax ? g.rxMin : `${g.rxMin}–${g.rxMax}`) : '—';
+    const head = `<tr class="grp${open ? ' open' : ''}" data-vn="${esc(g.vn)}">
+      <td class="nowrap"><button type="button" class="tgl" aria-expanded="${open}" aria-label="แสดงรายละเอียด VN ${esc(g.vn)}">${open ? '▾' : '▸'}</button>
+        <span class="mono"><b>${esc(g.vn)}</b></span><div class="sub mono">HN ${esc(g.hn)}${g.an ? ' · AN ' + esc(g.an) : ''}</div></td>
+      <td>${ptn ? esc(ptn) : (ptn === '' ? '—' : '<span class="muted">…</span>')}</td>
+      <td>${badges}</td>
+      <td class="num"><b>${fmtN(g.items.length)}</b><span class="sub"> / ${fmtN(vnTotal(g.vn))}</span></td>
+      <td class="nowrap">${esc(rx)}</td>
+      <td class="nowrap">${g.mdtMax ? esc(hhmm(g.mdtMax)) : '—'}</td>
+      <td>${esc(depLabel(dep[0]))}${dep.length > 1 ? `<span class="sub"> +${dep.length - 1}</span>` : ''}</td>
+    </tr>`;
+    return open ? head + `<tr class="detail"><td colspan="7">${detailTable(g)}</td></tr>` : head;
+  }).join('');
+  $('tableWrap').innerHTML = `<table class="groups">
+    <thead><tr>
+      <th>VN / HN</th><th>ผู้ป่วย</th><th>สถานะ</th>
+      <th style="text-align:right" title="รายการที่ติดเงื่อนไข / รายการยาเครื่องทั้งหมดของ VN">ติดเงื่อนไข / ทั้งหมด</th>
+      <th>เวลาสั่งยา</th><th>เข้าเครื่องล่าสุด</th><th>แผนกที่สั่ง</th>
+    </tr></thead><tbody>${rows}</tbody></table>`;
+  $('more').hidden = groups.length <= state.shown;
+  $('moreText').textContent = `แสดง ${fmtN(show.length)} จาก ${fmtN(groups.length)} VN`;
+  $('expandBtn').textContent = show.length && show.every(g => state.open.has(g.vn)) ? 'ย่อทั้งหมด' : 'ขยายทั้งหมด';
+  ensureNames(show);
+}
+
+function detailTable(g) {
+  const rows = g.items.map(it => {
+    const c = CAT[it.cat];
+    const qtyDiff = it.mqty != null && it.oqty != null && it.mqty !== it.oqty;
+    return `<tr>
+      <td><span class="badge ${c.cls}">${esc(c.label)}</span>${it.note ? `<div class="sub">${esc(it.note)}</div>` : ''}</td>
+      <td>${drugCell(it)}</td>
+      <td class="num${qtyDiff ? ' diff' : ''}">${it.oqty == null ? '—' : fmtN(it.oqty)}</td>
+      <td class="num${qtyDiff ? ' diff' : ''}">${it.mqty == null ? '—' : fmtN(it.mqty)}</td>
+      <td class="nowrap">${it.rxtime ? esc(str(it.rxtime).slice(0, 5)) : '—'}${it.rxdate && it.rxdate !== state.day ? `<div class="sub">${esc(it.rxdate)}</div>` : ''}
+        ${it.ostaff ? `<div class="sub">${esc(it.ostaff)}</div>` : ''}</td>
+      <td class="nowrap">${it.mdt ? esc(hhmm(it.mdt)) : '—'}${it.mstaff ? `<div class="sub">${esc(it.mstaff)}</div>` : ''}</td>
+      <td class="nowrap">${it.mid == null ? '—'
+        : (Number(it.dst) === SENT ? '<span class="badge ok">999 ส่งแล้ว</span>' : `<span class="badge err">${esc(it.dst || 'ว่าง')} ไม่ส่ง</span>`)
+          + (it.gdt ? `<div class="sub">${esc(hhmm(it.gdt))} · <span class="${lagCls(it.lag)}">รอ ${esc(fmtLag(it.lag))}</span></div>` : '')}</td>
+      <td>${esc(depLabel(it.odep))}${it.mdep ? `<div class="sub">จ่าย: ${esc(depLabel(it.mdep))}${it.mno ? ' · เครื่อง ' + esc(it.mno) : ''}</div>` : ''}</td>
+      <td class="sub mono">${esc(it.guid)}</td>
+    </tr>`;
+  }).join('');
+  const all = vnTotal(g.vn);
+  return `<table class="inner">
+    <thead><tr>
+      <th>สถานะ</th><th>ยา</th>
+      <th style="text-align:right">qty opitemrece</th><th style="text-align:right">qty เครื่อง</th>
+      <th>สั่งยา</th><th>เข้าเครื่อง</th><th>Gateway (dispensstatus)</th><th>แผนกที่สั่ง / ห้องจ่าย</th><th>hos_guid</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    ${state.cat !== 'all' && all > g.items.length
+      ? `<div class="sub" style="padding:6px 2px"><button type="button" class="linkish" data-allvn="${esc(g.vn)}">ดูทุกรายการของ VN นี้ (${fmtN(all)})</button></div>` : ''}`;
+}
+
+function toggleVn(vn) {
+  if (state.open.has(vn)) state.open.delete(vn); else state.open.add(vn);
+  renderTable();
+}
+function toggleAll() {
+  const show = groupByVn(filtered()).slice(0, state.shown);
+  const allOpen = show.length && show.every(g => state.open.has(g.vn));
+  show.forEach(g => allOpen ? state.open.delete(g.vn) : state.open.add(g.vn));
+  renderTable();
+}
+
+function setCat(cat) {
+  state.cat = cat;
+  state.shown = SHOW_STEP;
+  renderKpis();
+  renderChips();
+  renderTable();
+  savePref();
+}
+
+function exportCsv() {
+  const list = filtered();
+  const head = ['สถานะ', 'หมายเหตุ', 'VN', 'HN', 'AN', 'ผู้ป่วย', 'icode', 'ยา', 'qty_opitemrece', 'qty_เครื่อง',
+                'rxdate', 'rxtime', 'ผู้สั่ง', 'เข้าเครื่อง', 'dispensstatus', 'gateway', 'รอ_นาที', 'แผนกที่สั่ง', 'ห้องจ่าย', 'hos_guid'];
+  const q = v => { const s = String(v ?? ''); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const lines = [head.join(',')].concat(list.map(it => {
+    const d = state.drugs.get(it.icode);
+    return [CAT[it.cat].label, it.note || '', it.vn, it.hn, it.an || '', state.names.get(it.hn) || '', it.icode,
+      it.dname || (d ? d.name : ''), it.oqty ?? '', it.mqty ?? '', it.rxdate || '', it.rxtime || '', it.ostaff || '',
+      it.mdt ? it.mdt.replace('T', ' ') : '', it.dst ?? '', it.gdt ? it.gdt.replace('T', ' ') : '',
+      it.lag == null ? '' : Math.round(it.lag), depLabel(it.odep), depLabel(it.mdep), it.guid].map(q).join(',');
+  }));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `drug-machine-${state.day}-${state.cat}.csv`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+// ============================================================
+// รีเฟรชอัตโนมัติ + ค่าที่จำไว้
+// ============================================================
+function stopTimer() { clearInterval(state.timer); state.timer = 0; }
+function startTimer() {
+  stopTimer();
+  const sec = Number($('autoRefresh').value);
+  if (!sec) return;
+  state.timer = setInterval(() => {
+    if (document.hidden || !state.conn) return;
+    if ($('day').value !== todayIso()) return;   // รีเฟรชเฉพาะวันนี้
+    loadDashboard();
+  }, sec * 1000);
+}
+function savePref() {
+  try {
+    localStorage.setItem(LS_PREF, JSON.stringify({ opdOnly: $('opdOnly').checked, auto: $('autoRefresh').value, cat: state.cat }));
+  } catch {}
+}
+function loadPref() {
+  try {
+    const p = JSON.parse(localStorage.getItem(LS_PREF) || 'null');
+    if (!p) return;
+    if (typeof p.opdOnly === 'boolean') $('opdOnly').checked = p.opdOnly;
+    if (p.auto != null) $('autoRefresh').value = String(p.auto);
+    if (p.cat && (CAT[p.cat] || p.cat === 'all')) state.cat = p.cat;
+  } catch {}
+}
+
+// ============================================================
+// เริ่มต้น
+// ============================================================
+(function init() {
+  $('ver').textContent = 'v' + APP_VERSION;
+  $('fileWarn').hidden = location.protocol !== 'file:';
+  $('day').value = todayIso();
+  loadPref();
+
+  const params = new URLSearchParams(location.search);
+  const sidFromUrl = str(params.get(SID_PARAM));
+  for (const k of MKT_PARAMS) { const v = str(params.get(k)); if (v) { state.mkt = v; break; } }
+  const dayFromUrl = str(params.get('date'));
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dayFromUrl)) $('day').value = dayFromUrl;
+  if (sidFromUrl) {
+    // ไม่ให้ session id ค้างใน address bar / ประวัติเบราว์เซอร์
+    params.delete(SID_PARAM);
+    const qs = params.toString();
+    history.replaceState(null, '', location.pathname + (qs ? '?' + qs : '') + location.hash);
+  }
+
+  $('sessionForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const sid = $('sessionId').value.trim();
+    if (!sid) { toast('warn', 'กรุณาวาง BMS Session ID'); return; }
+    connect(sid);
+  });
+  $('disconnectBtn').addEventListener('click', disconnect);
+  $('loadBtn').addEventListener('click', loadDashboard);
+  $('day').addEventListener('change', loadDashboard);
+  $('opdOnly').addEventListener('change', () => { savePref(); loadDashboard(); });
+  $('autoRefresh').addEventListener('change', () => { savePref(); startTimer(); });
+
+  $('kpis').addEventListener('click', e => { const b = e.target.closest('button[data-cat]'); if (b) setCat(b.dataset.cat); });
+  $('chips').addEventListener('click', e => { const b = e.target.closest('button[data-cat]'); if (b) setCat(b.dataset.cat); });
+  let qTimer = 0;
+  $('q').addEventListener('input', () => { clearTimeout(qTimer); qTimer = setTimeout(() => { state.shown = SHOW_STEP; renderTable(); }, 200); });
+  $('depFilter').addEventListener('change', () => { state.shown = SHOW_STEP; renderTable(); });
+  $('sortBy').addEventListener('change', renderTable);
+  $('moreBtn').addEventListener('click', () => { state.shown += SHOW_STEP; renderTable(); });
+  $('csvBtn').addEventListener('click', exportCsv);
+  $('expandBtn').addEventListener('click', toggleAll);
+  $('tableWrap').addEventListener('click', e => {
+    const all = e.target.closest('button[data-allvn]');
+    if (all) {
+      $('q').value = all.dataset.allvn;
+      $('depFilter').value = '';
+      state.open.add(all.dataset.allvn);
+      setCat('all');
+      return;
+    }
+    const tr = e.target.closest('tr.grp');
+    if (tr && !window.getSelection().toString()) toggleVn(tr.dataset.vn);
+  });
+
+  startTimer();
+  const sid = sidFromUrl || loadSid();
+  if (sid) {
+    $('sessionId').value = sid;
+    connect(sid, { fromStore: !sidFromUrl });
+  }
+})();
+</script>
+</body>
+</html>
